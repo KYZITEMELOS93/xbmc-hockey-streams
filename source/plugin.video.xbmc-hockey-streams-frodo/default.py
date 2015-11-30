@@ -74,6 +74,7 @@ def iconCleanup():
       print 'iconCleanup failed: %s' % e
       pass
 
+
 # Method to get the short team name of a team
 # @param teamName the team name to get the shortened version for
 # @param root the root file path to append the resource file path to
@@ -342,9 +343,12 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
         utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart, icon(' [WMV]'))
 
     try:
-        hTeam = onDemandStream.homeTeam
+        if feedType == 'Away Feed':
+          team = onDemandStream.awayTeam
+        else:
+          team = onDemandStream.homeTeam
         dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
-        HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, hTeam, dStr)
+        HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, dStr)
     except Exception as e:
         print 'Error initializing highlights/condensed: ' + str(e)
 
@@ -570,94 +574,55 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
     print 'HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date)'
     print 'Team: ' + str(team)
     print 'Date: ' + str(date)
-
     highlights = []
     if showhighlight:
-        highlights = hockeystreams.dateOnDemandHighlights(session, date, team)
+      highlights = hockeystreams.dateOnDemandHighlights(session, date, team)
     condensedGames = []
     if showcondensed:
-        condensedGames = hockeystreams.dateOnDemandCondensed(session, date, team)
-
-    totalItems = len(highlights) + len(condensedGames)
-
+      condensedGames = hockeystreams.dateOnDemandCondensed(session, date, team)
+      
+    allMedia = highlights + condensedGames
+    totalItems = len(allMedia)
+    sourceDefs = [('highQualitySrc','HD'), ('medQualitySrc','MD'), ('lowQualitySrc','SD')]
     src = []
-    for highlight in highlights:
+    for media in allMedia:
+        def suffixFromUrl(url,definition):
+          if '_h_' in url:
+            return 'Home Feed [%s]' % definition
+          elif '_a_' in url:
+            return 'Away Feed [%s]' % definition
+          else:
+            return definition
         # Check global league filter
-        if enableleaguefilter and leagueFilter.count(highlight.event) == 0:
+        if enableleaguefilter and leagueFilter.count(media.event) == 0:
             continue
-
-        if team == None or (team == highlight.homeTeam or team == highlight.awayTeam):
+        if team == None or (team == media.homeTeam or team == media.awayTeam):
             # Create datetime for string formatting
-            parts = highlight.date.split('/')
+            parts = media.date.split('/')
             day = int(parts[1])
             month = int(parts[0])
             year = int(parts[2])
             dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
             # Build matchup
-            homeTeam = highlight.homeTeam if not shortNames else shortTeamName(highlight.homeTeam)
-            awayTeam = highlight.awayTeam if not shortNames else shortTeamName(highlight.awayTeam)
+            homeTeam = media.homeTeam if not shortNames else shortTeamName(media.homeTeam)
+            awayTeam = media.awayTeam if not shortNames else shortTeamName(media.awayTeam)
             matchupStr = awayTeam + ' @ ' + homeTeam
             if awayTeam == '' or homeTeam == '': # Indicates special event
                 matchupStr = awayTeam + homeTeam
             # Build title
-            title = '[Highlight] ' + highlight.event + ': ' + matchupStr + dateStr
+            prefix = 'Highlights' if isinstance(media, hockeystreams.Highlight) else 'Condensed'
+            title = '[' + prefix + '] ' + media.event + ': ' + matchupStr + dateStr
+
             def icon(suffix):
-                return createIcon(highlight.homeTeam,highlight.awayTeam, "Highlights" + suffix)
+                return createIcon(media.homeTeam,media.awayTeam, prefix + ' ' + suffix)
 
-            if highlight.highQualitySrc != None and len(highlight.highQualitySrc) > 0 and src.count(highlight.highQualitySrc) == 0:
-                utils.addLink(title + ' [Hi]', highlight.highQualitySrc, '', totalItems, showfanart, icon(' [HD]'))
-                src.append(highlight.highQualitySrc)
-            if highlight.medQualitySrc != None and len(highlight.medQualitySrc) > 0 and src.count(highlight.medQualitySrc) == 0:
-                utils.addLink(title + ' [Med]', highlight.medQualitySrc, '', totalItems, showfanart, icon(' [MD]'))
-                src.append(highlight.medQualitySrc)
-            if highlight.lowQualitySrc != None and len(highlight.lowQualitySrc) > 0 and src.count(highlight.lowQualitySrc) == 0:
-                utils.addLink(title + ' [Lo]', highlight.lowQualitySrc, '', totalItems, showfanart, icon(' [SD]'))
-                src.append(highlight.lowQualitySrc)
-            if highlight.homeSrc != None and len(highlight.homeSrc) > 0 and src.count(highlight.homeSrc) == 0:
-                utils.addLink(title + ' [Home]', highlight.homeSrc, '', totalItems, showfanart, icon(' [Home Feed]'))
-                src.append(highlight.homeSrc)
-            if highlight.awaySrc != None and len(highlight.awaySrc) > 0 and src.count(highlight.awaySrc) == 0:
-                utils.addLink(title + ' [Away]', highlight.awaySrc, '', totalItems, showfanart,icon(' [Away Feed]'))
-                src.append(highlight.awaySrc)
+            for acc, definition in sourceDefs:
+              url = eval('media.' + acc)
+              if url != None and 'check_back_shortly' not in url and utils.urlExists(url) and src.count(url) == 0:
+                utils.addLink((title + ' [' + definition + ']') , url, '', totalItems, showfanart, icon(suffixFromUrl(url,definition)))
+                print 'Adding url {0} - {1}'.format(url, suffixFromUrl(url,definition))
+                src.append(url)
 
-    for condensedGame in condensedGames:
-        # Check global league filter
-        if enableleaguefilter and leagueFilter.count(condensedGame.event) == 0:
-            continue
-
-        if team == None or (team == condensedGame.homeTeam or team == condensedGame.awayTeam):
-            # Create datetime for string formatting
-            parts = condensedGame.date.split('/')
-            day = int(parts[1])
-            month = int(parts[0])
-            year = int(parts[2])
-            dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
-            # Build matchup
-            homeTeam = condensedGame.homeTeam if not shortNames else shortTeamName(condensedGame.homeTeam)
-            awayTeam = condensedGame.awayTeam if not shortNames else shortTeamName(condensedGame.awayTeam)
-            matchupStr = awayTeam + ' @ ' + homeTeam
-            if awayTeam == '' or homeTeam == '': # Indicates special event
-                matchupStr = awayTeam + homeTeam
-            # Build title
-            title = '[Condensed] ' + condensedGame.event + ': ' + matchupStr + dateStr
-            def icon(suffix):
-                return createIcon(condensed.homeTeam,condensed.awayTeam, "Condensed" + suffix)
-
-            if condensedGame.highQualitySrc != None and len(condensedGame.highQualitySrc) > 0 and src.count(condensedGame.medQualitySrc) == 0:
-                utils.addLink(title + ' [Hi]', condensedGame.highQualitySrc, '', totalItems, showfanart, icon(' [HD]'))
-                src.append(condensedGame.highQualitySrc)
-            if condensedGame.medQualitySrc != None and len(condensedGame.medQualitySrc) > 0 and src.count(condensedGame.medQualitySrc) == 0:
-                utils.addLink(title + ' [Med]', condensedGame.medQualitySrc, '', totalItems, showfanart, icon(' [MD]'))
-                src.append(condensedGame.medQualitySrc)
-            if condensedGame.lowQualitySrc != None and len(condensedGame.lowQualitySrc) > 0 and src.count(condensedGame.lowQualitySrc) == 0:
-                utils.addLink(title + ' [Lo]', condensedGame.lowQualitySrc, '', totalItems, showfanart, icon(' [SD]'))
-                src.append(condensedGame.lowQualitySrc)
-            if condensedGame.homeSrc != None and len(condensedGame.homeSrc) > 0 and src.count(condensedGame.homeSrc) == 0:
-                utils.addLink(title + ' [Home]', condensedGame.homeSrc, '', totalItems, showfanart, icon(' [Home Feed]'))
-                src.append(condensedGame.homeSrc)
-            if condensedGame.awaySrc != None and len(condensedGame.awaySrc) > 0 and src.count(condensedGame.awaySrc) == 0:
-                utils.addLink(title + ' [Away]', condensedGame.awaySrc, '', totalItems, showfanart, icon(' [Away Feed]'))
-                src.append(condensedGame.awaySrc)
 
 # Method to draw the archive streams by event screen
 # which scrapes the external source and presents
@@ -739,9 +704,13 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
         utils.addLink(title + suffix, onDemandStream.streamSet['wmv'], '', totalItems, showfanart, icon(' [WMV]'))
 
     try:
-        hTeam = onDemandStream.homeTeam
+        if feedType == 'Away Feed':
+          team = onDemandStream.awayTeam
+        else:
+          team = onDemandStream.homeTeam
+        #hTeam = onDemandStream.homeTeam
         dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
-        HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, hTeam, dStr)
+        HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, dStr)
     except Exception as e:
         print 'Error initializing highlights/condensed: ' + str(e)
 
@@ -862,7 +831,7 @@ def buildLiveEvents(session, events, totalItems, filter):
             params = {
                 'eventId': event.eventId
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, "Live - " + event.feedType, homeScore, awayScore)
+            icon = createIcon(event.homeTeam,event.awayTeam, event.period + ' - ' + event.feedType, homeScore, awayScore)
             utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart, icon)
 
 # Method to draw the live streams screen
@@ -1127,7 +1096,7 @@ def buildLiveStreams(session, events, totalItems, filter):
         else:
             # Add links
             def icon(suffix):
-                header = 'Live - ' + (event.feedType or "N/A") + suffix
+                header = event.period + ' - ' + (event.feedType or "N/A") + suffix
                 return createIcon(event.homeTeam,event.awayTeam, header, homeScore, awayScore) 
             if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and event.trueLiveHD != None:
                 suffix = ' [TrueLive HD]'

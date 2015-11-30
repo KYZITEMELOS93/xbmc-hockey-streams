@@ -1,5 +1,6 @@
 import xbmcgui, xbmcplugin
-import urllib
+import urllib, httplib
+from urlparse import urlparse
 import sys
 
 # xbmc-hockey-streams
@@ -68,6 +69,18 @@ def parseParamString(params, key):
     except:
         pass
     return value
+
+def urlExists(url):
+    try:
+      p = urlparse(url)
+      conn = httplib.HTTPConnection(p.netloc)
+      conn.request('HEAD', p.path)
+      resp = conn.getresponse()
+      status = resp.status
+    except:
+      status = 404
+    return status != 404
+    
 
 # Method to add a link to the xbmc gui
 # @param name the name of the link to show
