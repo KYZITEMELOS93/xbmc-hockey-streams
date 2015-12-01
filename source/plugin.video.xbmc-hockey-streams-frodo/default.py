@@ -614,13 +614,6 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
           else:
             return definition
 
-#        def suffixFromUrl(url,definition):
-#          if '_h_' in url:
-#            return 'Home Feed [%s]' % definition
-#          elif '_a_' in url:
-#            return 'Away Feed [%s]' % definition
-#          else:
-#            return definition
         # Check global league filter
         if enableleaguefilter and leagueFilter.count(media.event) == 0:
             continue
@@ -646,6 +639,8 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
 
             for acc, definition in sourceDefs:
               url = eval('media.' + acc)
+              if definition == 'HD' and not utils.urlExists(url):
+                url = url.replace('4500','3000')
               if url != None and 'check_back_shortly' not in url and utils.urlExists(url) and src.count(url) == 0:
                 utils.addLink((title + ' [' + definition + ']') , url, '', totalItems, showfanart, icon(url,definition))
                 src.append(url)
