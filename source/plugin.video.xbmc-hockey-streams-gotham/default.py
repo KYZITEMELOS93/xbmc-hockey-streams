@@ -1,6 +1,6 @@
 import xbmc, xbmcplugin, xbmcaddon, xbmcgui
 import hockeystreams, utils
-import os, datetime, threading, random, time, json, uuid, glob, tempfile
+import os, datetime, threading, random, time, json, uuid, glob, tempfile, traceback
 from PIL import Image, ImageDraw, ImageFont
 
 # xbmc-hockey-streams
@@ -347,10 +347,14 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
           team = onDemandStream.awayTeam
         else:
           team = onDemandStream.homeTeam
-        dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
+        try:
+          dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
+        except TypeError:
+          dStr = datetime.datetime(*(time.strptime(dateStr, ' - %d %b \'%y')[0:6]))
         HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, dStr)
     except Exception as e:
-        print 'Error initializing highlights/condensed: ' + str(e)
+        print 'Error initializing on-demand event streams: ' + str(e)
+        traceback.print_exc()
 
     setViewMode()
 
@@ -708,11 +712,13 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
           team = onDemandStream.awayTeam
         else:
           team = onDemandStream.homeTeam
-        #hTeam = onDemandStream.homeTeam
-        dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
+        try:
+          dStr = datetime.datetime.strptime(dateStr, ' - %d %b \'%y')
+        except TypeError:
+          dStr = datetime.datetime(*(time.strptime(dateStr, ' - %d %b \'%y')[0:6]))
         HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, dStr)
     except Exception as e:
-        print 'Error initializing highlights/condensed: ' + str(e)
+        print 'Error initializing onDemand by team/league: ' + str(e)
 
     setViewMode()
 
