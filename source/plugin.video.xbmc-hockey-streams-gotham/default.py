@@ -27,7 +27,19 @@ class Icon():
     scoresFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 48)
     emptyIcon  = os.path.join(addonPath,'empty_icon.png')
 
-    def __init__(self, homeTeam, awayTeam, header, homeScore = None, awayScore = None):
+    def feedTypeLogo(self,feedType,homeTeam,awayTeam):
+      if feedType is None:
+        return None
+      elif feedType == 'Home Feed':
+        print os.path.join(addonPath,homeTeam['logo']).replace('.png','48x48.png')
+        return Image.open(os.path.join(addonPath,homeTeam['logo']).replace('.png','48x48.png'))
+      elif feedType == 'Away Feed':
+        print os.path.join(addonPath,awayTeam['logo']).replace('.png','48x48.png')
+        return Image.open(os.path.join(addonPath,awayTeam['logo']).replace('.png','48x48.png'))
+      else:
+        return None
+
+    def __init__(self, homeTeam, awayTeam, header, feedType = None, homeScore = None, awayScore = None):
         icon = Image.open(Icon.emptyIcon)
         draw = ImageDraw.Draw(icon)
         awayTeamLogo = Image.open(os.path.join(addonPath,awayTeam['logo']))
@@ -36,7 +48,12 @@ class Icon():
         homeTeamLogo = Image.open(os.path.join(addonPath,homeTeam['logo']))
         icon.paste(homeTeamLogo, (10,60+98+1), homeTeamLogo)
         draw.text((120,60+98+40), homeTeam['abbreviation'], font = Icon.abbFont, fill="black")
-        draw.text((10, 16), header, font = Icon.headerFont, fill="black")
+        ftLogo = self.feedTypeLogo(feedType,homeTeam,awayTeam)
+        if ftLogo is not None:
+          icon.paste(ftLogo, (10,6,10+48,6+48), ftLogo)
+          draw.text((65, 16), header, font = Icon.headerFont, fill="black")
+        else:
+          draw.text((10, 16), header + (' - {0}'.format(feedType) if feedType is not None else ''), font = Icon.headerFont, fill="black")
         if (homeScore is not None and awayScore is not None):
           draw.text((200, 60+15), awayScore, font = Icon.scoresFont, fill="black")
           draw.text((200, 60+98+15), homeScore, font = Icon.scoresFont, fill="black")
@@ -55,10 +72,10 @@ class Icon():
           saveLocation = 'special://home/addons/' + addonId + '/Ice-Hockey-icon.png'
         return saveLocation
 
-def createIcon(homeTeam, awayTeam, header, homeScore = None, awayScore = None):
+def createIcon(homeTeam, awayTeam, header, feedType = None, homeScore = None, awayScore = None):
     if (showicons and awayTeam.lower() in teams and homeTeam.lower() in teams):
         if ('logo' in teams[awayTeam.lower()] and 'logo' in teams[homeTeam.lower()]):
-           return Icon(teams[homeTeam.lower()],teams[awayTeam.lower()],header,homeScore if (showscores) else None,awayScore if (showscores) else None)
+           return Icon(teams[homeTeam.lower()],teams[awayTeam.lower()],header,feedType,homeScore if (showscores) else None,awayScore if (showscores) else None)
         else:
            return None
     else:
@@ -261,7 +278,7 @@ def buildOnDemandEvents(session, events, totalItems, filter):
             'feedType': event.feedType,
             'dateStr': dateStr
         }
-        icon = createIcon(event.homeTeam,event.awayTeam,event.date + " - " + event.feedType)
+        icon = createIcon(event.homeTeam,event.awayTeam,event.date,event.feedType)
         utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT, '', params, totalItems, showfanart, icon)
 
 # Method to draw the archives by date screen
@@ -304,8 +321,7 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, eventId, feedType, dateStr):
     # Build title
     title = onDemandStream.event + ': ' + matchupStr + dateStr
     def icon(suffix):
-        header = (feedType or 'N/A') + suffix
-        return createIcon(onDemandStream.homeTeam,onDemandStream.awayTeam,header)
+        return createIcon(onDemandStream.homeTeam,onDemandStream.awayTeam,suffix,feedType)
     if istream and ondemandresolution != 'SD Only' and onDemandStream.streamSet['istream.hd'] != None:
         suffix = ' [iStream HD]' + feedStr
         utils.addLink(title + suffix, onDemandStream.streamSet['istream.hd'], '', totalItems, showfanart,icon(' [iStream HD]'))
@@ -566,7 +582,7 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM(session, league, team):
             'feedType': event.feedType,
             'dateStr': dateStr
         }
-        icon = createIcon(event.homeTeam,event.awayTeam, event.date + " - " + event.feedType)
+        icon = createIcon(event.homeTeam,event.awayTeam, event.date, event.feedType)
         utils.addDir(title, utils.Mode.ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT, '', params, totalItems, showfanart, icon)
 
     setViewMode()
@@ -590,13 +606,21 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
     sourceDefs = [('highQualitySrc','HD'), ('medQualitySrc','MD'), ('lowQualitySrc','SD')]
     src = []
     for media in allMedia:
-        def suffixFromUrl(url,definition):
+        def feedType(url):
           if '_h_' in url:
-            return 'Home Feed [%s]' % definition
+            return 'Home Feed'
           elif '_a_' in url:
-            return 'Away Feed [%s]' % definition
+            return 'Away Feed'
           else:
             return definition
+
+#        def suffixFromUrl(url,definition):
+#          if '_h_' in url:
+#            return 'Home Feed [%s]' % definition
+#          elif '_a_' in url:
+#            return 'Away Feed [%s]' % definition
+#          else:
+#            return definition
         # Check global league filter
         if enableleaguefilter and leagueFilter.count(media.event) == 0:
             continue
@@ -617,14 +641,13 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
             prefix = 'Highlights' if isinstance(media, hockeystreams.Highlight) else 'Condensed'
             title = '[' + prefix + '] ' + media.event + ': ' + matchupStr + dateStr
 
-            def icon(suffix):
-                return createIcon(media.homeTeam,media.awayTeam, prefix + ' ' + suffix)
+            def icon(url,suffix):
+                return createIcon(media.homeTeam,media.awayTeam, prefix + ' ' + suffix, feedType(url))
 
             for acc, definition in sourceDefs:
               url = eval('media.' + acc)
               if url != None and 'check_back_shortly' not in url and utils.urlExists(url) and src.count(url) == 0:
-                utils.addLink((title + ' [' + definition + ']') , url, '', totalItems, showfanart, icon(suffixFromUrl(url,definition)))
-                print 'Adding url {0} - {1}'.format(url, suffixFromUrl(url,definition))
+                utils.addLink((title + ' [' + definition + ']') , url, '', totalItems, showfanart, icon(url,definition))
                 src.append(url)
 
 
@@ -668,8 +691,8 @@ def ONDEMAND_BYTEAM_LEAGUE_TEAM_EVENT(session, eventId, feedType, dateStr):
     # Build title
     title = onDemandStream.event + ': ' + matchupStr + str(dateStr)
     def icon(suffix):
-        header = (feedType or "N/A") + suffix
-        return createIcon(onDemandStream.homeTeam,onDemandStream.awayTeam, header)
+        header = suffix
+        return createIcon(onDemandStream.homeTeam,onDemandStream.awayTeam, header, feedType)
 
     if istream and ondemandresolution != 'SD Only' and onDemandStream.streamSet['istream.hd'] != None:
         suffix = ' [iStream HD]' + feedStr
@@ -825,19 +848,19 @@ def buildLiveEvents(session, events, totalItems, filter):
                 'team': str(team),
                 'feedType': str(event.feedType)
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, "Final - " + event.feedType, homeScore, awayScore)
+            icon = createIcon(event.homeTeam,event.awayTeam, "Final", event.feedType, homeScore, awayScore)
             utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, icon)
         elif event.isFuture:
             refreshParams = {
                 'refresh': 'True'
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, event.startTime + " - " + event.feedType, homeScore, awayScore)
+            icon = createIcon(event.homeTeam,event.awayTeam, event.startTime, event.feedType, homeScore, awayScore)
             utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, icon)
         else:
             params = {
                 'eventId': event.eventId
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, event.period + ' - ' + event.feedType, homeScore, awayScore)
+            icon = createIcon(event.homeTeam,event.awayTeam, event.period, event.feedType, homeScore, awayScore)
             utils.addDir(title, utils.Mode.LIVE_EVENT, '', params, totalItems, showfanart, icon)
 
 # Method to draw the live streams screen
@@ -895,7 +918,7 @@ def LIVE_EVENT(session, eventId):
     title = prefix + liveStream.event + ': ' + matchupStr + scoreStr + periodStr + startTimeStr
     # Add links
     def icon(suffix):
-        return createIcon(liveStream.homeTeam,liveStream.awayTeam, liveStream.feedType + suffix, homeScore, awayScore)
+        return createIcon(liveStream.homeTeam,liveStream.awayTeam, suffix, liveStream.feedType, homeScore, awayScore)
     if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and liveStream.streamSet['truelive.hd'] != None:
         suffix = ' [TrueLive HD]'
         utils.addLink(title + suffix, liveStream.streamSet['truelive.hd'], '', totalItems, showfanart, icon(suffix))
@@ -1091,19 +1114,19 @@ def buildLiveStreams(session, events, totalItems, filter):
                 'team': str(team),
                 'feedType': str(event.feedType)
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, "Final - " + event.feedType, homeScore, awayScore) 
+            icon = createIcon(event.homeTeam,event.awayTeam, "Final", event.feedType, homeScore, awayScore) 
             utils.addDir(title, utils.Mode.LIVE_FINALEVENT, '', params, totalItems, showfanart, icon)
         elif event.isFuture:
             refreshParams = {
                 'refresh': 'True'
             }
-            icon = createIcon(event.homeTeam,event.awayTeam, event.startTime + ' ' + event.feedType,homeScore,awayScore) 
+            icon = createIcon(event.homeTeam,event.awayTeam, event.startTime, event.feedType, homeScore,awayScore) 
             utils.addDir(title, mode, '', refreshParams, totalItems, showfanart, icon)
         else:
             # Add links
             def icon(suffix):
-                header = event.period + ' - ' + (event.feedType or "N/A") + suffix
-                return createIcon(event.homeTeam,event.awayTeam, header, homeScore, awayScore) 
+                header = event.period + ' - ' + suffix
+                return createIcon(event.homeTeam,event.awayTeam, header, event.feedType, homeScore, awayScore) 
             if truelive and liveresolution != 'SD Only' and liveresolution != 'MD Only' and event.trueLiveHD != None:
                 suffix = ' [TrueLive HD]'
                 utils.addLink(title + suffix, event.trueLiveHD, '', totalItems, showfanart, icon(suffix))
