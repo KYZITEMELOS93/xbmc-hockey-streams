@@ -1,5 +1,6 @@
 [b]3.1.2[/b]
 - Added: Support for live period timings.
+- Added: Cleared up header text with logos instead
 - Fixed: Condensed and highlight support.
 
 [b]3.1.1[/b]
