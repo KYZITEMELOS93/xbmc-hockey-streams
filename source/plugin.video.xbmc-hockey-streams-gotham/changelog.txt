@@ -1,3 +1,8 @@
+[b]3.1.4[/b]
+- Fixed: PIL imaging import wrapped in try for unsupported platforms.
+- Fixed: improved support for condensed HD to 5000kbps.  This is a hack fix for now.
+- Added: Scores support for by-date ondemand in icons.  Enabled via settings.
+
 [b]3.1.3[/b]
 - Added: Support for condensed HD.  This is a hack fix for now.
 

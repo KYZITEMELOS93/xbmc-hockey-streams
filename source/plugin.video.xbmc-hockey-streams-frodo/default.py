@@ -1,7 +1,13 @@
 import xbmc, xbmcplugin, xbmcaddon, xbmcgui
 import hockeystreams, utils
 import os, datetime, threading, random, time, json, uuid, glob, tempfile, traceback
-from PIL import Image, ImageDraw, ImageFont
+try:
+  from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+  pilSupport = False
+  pass
+else:
+  pilSupport = True
 
 # xbmc-hockey-streams
 # author: craig mcnicholas, swedemon
@@ -31,15 +37,15 @@ class Icon():
       if feedType is None:
         return None
       elif feedType == 'Home Feed':
-        print os.path.join(addonPath,homeTeam['logo']).replace('.png','48x48.png')
         return Image.open(os.path.join(addonPath,homeTeam['logo']).replace('.png','48x48.png'))
       elif feedType == 'Away Feed':
-        print os.path.join(addonPath,awayTeam['logo']).replace('.png','48x48.png')
         return Image.open(os.path.join(addonPath,awayTeam['logo']).replace('.png','48x48.png'))
       else:
         return None
 
     def __init__(self, homeTeam, awayTeam, header, feedType = None, homeScore = None, awayScore = None):
+        if pilSupport is False:
+          raise ValueError('No PIL support.')
         icon = Image.open(Icon.emptyIcon)
         draw = ImageDraw.Draw(icon)
         awayTeamLogo = Image.open(os.path.join(addonPath,awayTeam['logo']))
@@ -73,7 +79,7 @@ class Icon():
         return saveLocation
 
 def createIcon(homeTeam, awayTeam, header, feedType = None, homeScore = None, awayScore = None):
-    if (showicons and awayTeam.lower() in teams and homeTeam.lower() in teams):
+    if (showicons and pilSupport and awayTeam.lower() in teams and homeTeam.lower() in teams):
         if ('logo' in teams[awayTeam.lower()] and 'logo' in teams[homeTeam.lower()]):
            return Icon(teams[homeTeam.lower()],teams[awayTeam.lower()],header,feedType,homeScore if (showscores) else None,awayScore if (showscores) else None)
         else:
@@ -214,7 +220,7 @@ def ONDEMAND_BYDATE_YEARMONTH_DAY(session, year, month, day):
     # Retrieve the events
     date = datetime.date(year, month, day)
     try:
-        events = hockeystreams.dateOnDemandEvents(session, date)
+        events = hockeystreams.dateOnDemandEvents(session, date, showScoresOnDemand)
     except Exception as e:
         print 'Warning:  No events found for date: ' + str(date) + ' Msg: ' + str(e)
         return
@@ -278,7 +284,7 @@ def buildOnDemandEvents(session, events, totalItems, filter):
             'feedType': event.feedType,
             'dateStr': dateStr
         }
-        icon = createIcon(event.homeTeam,event.awayTeam,event.date,event.feedType)
+        icon = createIcon(event.homeTeam,event.awayTeam,event.date,event.feedType,homeScore = event.homeScore,awayScore = event.awayScore)
         utils.addDir(title, utils.Mode.ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT, '', params, totalItems, showfanart, icon)
 
 # Method to draw the archives by date screen
@@ -640,7 +646,7 @@ def HIGHLIGHTSANDCONDENSED_BYTEAM_TEAMDATE(session, team, date):
             for acc, definition in sourceDefs:
               url = eval('media.' + acc)
               if definition == 'HD' and not utils.urlExists(url):
-                url = url.replace('4500','3000')
+                url = url.replace('4500','5000')
               if url != None and 'check_back_shortly' not in url and utils.urlExists(url) and src.count(url) == 0:
                 utils.addLink((title + ' [' + definition + ']') , url, '', totalItems, showfanart, icon(url,definition))
                 src.append(url)
@@ -1190,6 +1196,8 @@ showaltlive = addon.getSetting('showaltlive')
 showaltlive = showaltlive != None and showaltlive.lower() == 'true'
 showfanart = addon.getSetting('showfanart')
 showfanart = showfanart != None and showfanart.lower() == 'true'
+showScoresOnDemand = addon.getSetting('showscoresondemand')
+showScoresOnDemand = showScoresOnDemand != None and showScoresOnDemand.lower() == 'true'
 showhighlight = addon.getSetting('showhighlight')
 showhighlight = showhighlight != None and showhighlight.lower() == 'true'
 showcondensed = addon.getSetting('showcondensed')
