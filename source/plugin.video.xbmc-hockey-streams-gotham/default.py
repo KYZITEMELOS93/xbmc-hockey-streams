@@ -27,12 +27,6 @@ f.close()
 teams = json.loads(teamsContent)
 
 class Icon():
-    # some fonts we'll be using
-    headerFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Regular.ttf'), 18)
-    abbFont    = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 18)
-    scoresFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 48)
-    emptyIcon  = os.path.join(addonPath,'empty_icon.png')
-
     def feedTypeLogo(self,feedType,homeTeam,awayTeam):
       if feedType is None:
         return None
@@ -46,6 +40,12 @@ class Icon():
     def __init__(self, homeTeam, awayTeam, header, feedType = None, homeScore = None, awayScore = None):
         if pilSupport is False:
           raise ValueError('No PIL support.')
+        # some fonts we'll be using
+        headerFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Regular.ttf'), 18)
+        abbFont    = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 18)
+        scoresFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 48)
+        emptyIcon  = os.path.join(addonPath,'empty_icon.png')
+
         icon = Image.open(Icon.emptyIcon)
         draw = ImageDraw.Draw(icon)
         awayTeamLogo = Image.open(os.path.join(addonPath,awayTeam['logo']))
