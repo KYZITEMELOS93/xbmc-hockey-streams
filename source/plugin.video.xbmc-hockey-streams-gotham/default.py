@@ -1009,7 +1009,7 @@ def LIVE_FINALEVENT(session, year, month, day, team, feedType):
             year = int(parts[2])
             dateStr = ' - ' + datetime.date(year, month, day).strftime('%d %b \'%y')
 
-            ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, event.eventId, event.feedType, dateStr, event.icon(addonPath,teams,showscores))
+            ONDEMAND_BYDATE_YEARMONTH_DAY_EVENT(session, event.eventId, event.feedType, dateStr)
 
 # Method to draw the live screen
 # which scrapes the external source and presents

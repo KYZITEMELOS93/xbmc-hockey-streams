@@ -304,7 +304,6 @@ def getScores(date):
     'date': date
   })
   url = 'https://api.hockeystreams.com/Scores?' + data
-  print 'scores url: ' + url
   # Get response for events
   request = __setupRequest(url)
   response = urllib2.urlopen(request)
@@ -314,8 +313,8 @@ def getScores(date):
   # Parse the events response
   js = json.loads(page)
 
-#  if API_DEBUG == True:
-  print url + ' ' + str(js)
+  if API_DEBUG == True:
+    print url + ' ' + str(js)
 
   # Get the ondemand array
   return js['scores']
