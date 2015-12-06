@@ -46,23 +46,23 @@ class Icon():
         scoresFont = ImageFont.truetype(os.path.join(addonPath,'resources','data','fonts','Open_Sans','OpenSans-Bold.ttf'), 48)
         emptyIcon  = os.path.join(addonPath,'empty_icon.png')
 
-        icon = Image.open(Icon.emptyIcon)
+        icon = Image.open(emptyIcon)
         draw = ImageDraw.Draw(icon)
         awayTeamLogo = Image.open(os.path.join(addonPath,awayTeam['logo']))
         icon.paste(awayTeamLogo, (10,60+1), awayTeamLogo)
-        draw.text((120,60+40), awayTeam['abbreviation'], font = Icon.abbFont, fill="black")
+        draw.text((120,60+40), awayTeam['abbreviation'], font = abbFont, fill="black")
         homeTeamLogo = Image.open(os.path.join(addonPath,homeTeam['logo']))
         icon.paste(homeTeamLogo, (10,60+98+1), homeTeamLogo)
-        draw.text((120,60+98+40), homeTeam['abbreviation'], font = Icon.abbFont, fill="black")
+        draw.text((120,60+98+40), homeTeam['abbreviation'], font = abbFont, fill="black")
         ftLogo = self.feedTypeLogo(feedType,homeTeam,awayTeam)
         if ftLogo is not None:
           icon.paste(ftLogo, (10,6,10+48,6+48), ftLogo)
-          draw.text((65, 16), header, font = Icon.headerFont, fill="black")
+          draw.text((65, 16), header, font = headerFont, fill="black")
         else:
-          draw.text((10, 16), header + (' - {0}'.format(feedType) if feedType is not None else ''), font = Icon.headerFont, fill="black")
+          draw.text((10, 16), header + (' - {0}'.format(feedType) if feedType is not None else ''), font = headerFont, fill="black")
         if (homeScore is not None and awayScore is not None):
-          draw.text((200, 60+15), awayScore, font = Icon.scoresFont, fill="black")
-          draw.text((200, 60+98+15), homeScore, font = Icon.scoresFont, fill="black")
+          draw.text((200, 60+15), awayScore, font = scoresFont, fill="black")
+          draw.text((200, 60+98+15), homeScore, font = scoresFont, fill="black")
         self.image = icon
 
     def filename(self):
