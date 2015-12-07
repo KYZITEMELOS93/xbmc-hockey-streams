@@ -1,3 +1,7 @@
+[b]3.1.5[/b]
+- Fixed: Startup bug.
+- Added: Improved support for highlights HD up to 4500 kbps, another hack fix.
+
 [b]3.1.4[/b]
 - Fixed: PIL imaging import wrapped in try for unsupported platforms.
 - Fixed: improved support for condensed HD to 5000kbps.  This is a hack fix for now.

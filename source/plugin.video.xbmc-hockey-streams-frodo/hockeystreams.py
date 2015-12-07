@@ -522,8 +522,8 @@ def dateOnDemandHighlights(session, date = None, team = None):
         return highlights
 
     __checkStatus(js)
-#    if API_DEBUG == True:
-    print url + ' ' + str(js)
+    if API_DEBUG == True:
+      print url + ' ' + str(js)
 
     # Get the schedule array
     highlightArray = js['highlights']
@@ -543,6 +543,9 @@ def dateOnDemandHighlights(session, date = None, team = None):
         lowQualitySrc = highlight['lowQualitySrc']
         medQualitySrc = highlight['medQualitySrc']
         highQualitySrc = highlight['highQualitySrc']
+        if medQualitySrc is not None and (highQualitySrc is None or highQualitySrc == ''):
+          nhlEventId,mp4 = [medQualitySrc.split('/')[i] for i in [-2,-1]]
+          highQualitySrc = 'http://nlds150.cdnl3nl.neulion.com/nlds_vod/nhl/vod/{0}/{1}/{2}/{3}/{4}'.format(year,month,day,nhlEventId,mp4.replace('1600','4500'))
         homeSrc = highlight['homeSrc']
         awaySrc = highlight['awaySrc']
         
